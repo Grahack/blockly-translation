@@ -28,7 +28,7 @@ if (!Blockly.Language) Blockly.Language = {};
 
 Blockly.Language.controls_if = {
   // If/elseif/else condition.
-  category: 'Control',
+  category: Blockly.LANG_CONTROL_CATEGORY,
   helpUrl: 'http://code.google.com/p/blockly/wiki/If_Then',
   init: function() {
     this.setColour(120);
@@ -59,10 +59,10 @@ Blockly.Language.controls_if = {
     this.elseifCount_ = 0;
     this.elseCount_ = 0;
   },
-  MSG_IF: 'if',
-  MSG_ELSEIF: 'else if',
-  MSG_ELSE: 'else',
-  MSG_THEN: 'then',
+  MSG_IF: Blockly.LANG_CONTROL_IF_IF_LABEL,
+  MSG_ELSEIF: Blockly.LANG_CONTROL_IF_ELSEIF_LABEL,
+  MSG_ELSE: Blockly.LANG_CONTROL_IF_ELSE_LABEL,
+  MSG_THEN: Blockly.LANG_CONTROL_IF_THEN_LABEL,
   mutationToDom: function(workspace) {
     if (!this.elseifCount_ && !this.elseCount_) {
       return null;
@@ -160,7 +160,7 @@ Blockly.Language.controls_if_if = {
   // If condition.
   init: function() {
     this.setColour(120);
-    this.appendTitle('if');
+    this.appendTitle(Blockly.LANG_CONTROL_IF_IF_LABEL);
     this.appendInput('', Blockly.NEXT_STATEMENT, 'STACK');
     this.setTooltip('Add, remove, or reorder sections\n' +
                     'to reconfigure this if block.');
@@ -172,7 +172,7 @@ Blockly.Language.controls_if_elseif = {
   // Else-If condition.
   init: function() {
     this.setColour(120);
-    this.appendTitle('else if');
+    this.appendTitle(Blockly.LANG_CONTROL_IF_ELSEIF_LABEL);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setTooltip('Add a condition to the if block.');
@@ -184,7 +184,7 @@ Blockly.Language.controls_if_else = {
   // Else condition.
   init: function() {
     this.setColour(120);
-    this.appendTitle('else');
+    this.appendTitle(Blockly.LANG_CONTROL_IF_ELSE_LABEL);
     this.setPreviousStatement(true);
     this.setTooltip('Add a final, catch-all condition to the if block.');
     this.contextMenu = false;
@@ -193,15 +193,15 @@ Blockly.Language.controls_if_else = {
 
 Blockly.Language.controls_whileUntil = {
   // Do while/until loop.
-  category: 'Control',
+  category: Blockly.LANG_CONTROL_CATEGORY,
   helpUrl: 'http://code.google.com/p/blockly/wiki/Repeat',
   init: function() {
     this.setColour(120);
-    this.appendTitle('repeat');
+    this.appendTitle(Blockly.LANG_CONTROL_REPEAT_LABEL);
     var dropdown = new Blockly.FieldDropdown(this.OPERATORS);
     this.appendTitle(dropdown, 'MODE');
     this.appendInput('', Blockly.INPUT_VALUE, 'BOOL', Boolean);
-    this.appendInput('do', Blockly.NEXT_STATEMENT, 'DO');
+    this.appendInput(Blockly.LANG_CONTROL_DO_LABEL, Blockly.NEXT_STATEMENT, 'DO');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     // Assign 'this' to a variable for use in the tooltip closure below.
@@ -214,8 +214,8 @@ Blockly.Language.controls_whileUntil = {
 };
 
 Blockly.Language.controls_whileUntil.OPERATORS =
-    [['while', 'WHILE'],
-     ['until', 'UNTIL']];
+    [[Blockly.LANG_CONTROL_WHILE_LABEL, 'WHILE'],
+     [Blockly.LANG_CONTROL_UNTIL_LABEL, 'UNTIL']];
 
 Blockly.Language.controls_whileUntil.TOOLTIPS = {
   WHILE: 'While a value is true, then do some statements.',
@@ -224,7 +224,7 @@ Blockly.Language.controls_whileUntil.TOOLTIPS = {
 
 Blockly.Language.controls_for = {
   // For loop.
-  category: 'Control',
+  category: Blockly.LANG_CONTROL_CATEGORY,
   helpUrl: 'http://en.wikipedia.org/wiki/For_loop',
   init: function() {
     this.setColour(120);
@@ -256,7 +256,7 @@ Blockly.Language.controls_for = {
 
 Blockly.Language.controls_forEach = {
   // For each loop.
-  category: 'Control',
+  category: Blockly.LANG_CONTROL_CATEGORY,
   helpUrl: 'http://en.wikipedia.org/wiki/For_loop',
   init: function() {
     this.setColour(120);
@@ -286,7 +286,7 @@ Blockly.Language.controls_forEach = {
 
 Blockly.Language.controls_flow_statements = {
   // Flow statements: continue, break.
-  category: 'Control',
+  category: Blockly.LANG_CONTROL_CATEGORY,
   helpUrl: 'http://en.wikipedia.org/wiki/Control_flow',
   init: function() {
     this.setColour(120);

@@ -62,20 +62,20 @@ Blockly.LANG_PROCEDURES_CALLRETURN_PROCEDURE = 'procedure';
 Blockly.LANG_PROCEDURES_CALLRETURN_TOOLTIP_1 = 'Call a procedure with a return value.';
 
 // Control
-Blockly.LANG_CONTROL_CATEGORY='Control';
+Blockly.LANG_CONTROL_CATEGORY='Controles';
 
 
 // IF CONTROL
-Blockly.LANG_CONTROL_IF_IF_LABEL='if';
-Blockly.LANG_CONTROL_IF_ELSEIF_LABEL='else if';
-Blockly.LANG_CONTROL_IF_ELSE_LABEL='else';
-Blockly.LANG_CONTROL_IF_THEN_LABEL='then';
+Blockly.LANG_CONTROL_IF_IF_LABEL='si';
+Blockly.LANG_CONTROL_IF_ELSEIF_LABEL='sinon si';
+Blockly.LANG_CONTROL_IF_ELSE_LABEL='sinon';
+Blockly.LANG_CONTROL_IF_THEN_LABEL='alors';
 
 
 // WHILE/UNTIL CONTROL
-Blockly.LANG_CONTROL_REPEAT_LABEL='repeat';
-Blockly.LANG_CONTROL_WHILE_LABEL='while';
-Blockly.LANG_CONTROL_UNTIL_LABEL='until';
-Blockly.LANG_CONTROL_DO_LABEL='do';
+Blockly.LANG_CONTROL_REPEAT_LABEL='répéter';
+Blockly.LANG_CONTROL_WHILE_LABEL='tant que';
+Blockly.LANG_CONTROL_UNTIL_LABEL='jusqu\'a ce que';
+Blockly.LANG_CONTROL_DO_LABEL='faire';
 
 
