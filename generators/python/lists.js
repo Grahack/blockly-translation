@@ -2,7 +2,7 @@
  * Visual Blocks Language
  *
  * Copyright 2012 Google Inc.
- * http://code.google.com/p/blockly/
+ * http://blockly.googlecode.com/
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,71 +19,256 @@
 
 /**
  * @fileoverview Generating Python for list blocks.
- * @author fraser@google.com (Neil Fraser)
- * Due to the frequency of long strings, the 80-column wrap rule need not apply
- * to language files.
+ * @author q.neutron@gmail.com (Quynh Neutron)
  */
+'use strict';
 
-Blockly.Python = Blockly.Generator.get('Python');
+goog.provide('Blockly.Python.lists');
+
+goog.require('Blockly.Python');
 
 Blockly.Python.lists_create_empty = function() {
   // Create an empty list.
-  return '[]';
+  return ['[]', Blockly.Python.ORDER_ATOMIC];
 };
 
 Blockly.Python.lists_create_with = function() {
   // Create a list with any number of elements of any type.
   var code = new Array(this.itemCount_);
-  for (n = 0; n < this.itemCount_; n++) {
-    code[n] = Blockly.Python.valueToCode(this, 'ADD' + n, true) || 'None';
+  for (var n = 0; n < this.itemCount_; n++) {
+    code[n] = Blockly.Python.valueToCode(this, 'ADD' + n,
+        Blockly.Python.ORDER_NONE) || 'None';
   }
-  return '[' + code.join(', ') + ']';
+  code = '[' + code.join(', ') + ']';
+  return [code, Blockly.Python.ORDER_ATOMIC];
 };
 
-Blockly.Python.lists_repeat = function(opt_dropParens) {
+Blockly.Python.lists_repeat = function() {
   // Create a list with one element repeated.
-  var argument0 = Blockly.Python.valueToCode(this, 'ITEM', true) || 'None';
-  var argument1 = Blockly.Python.valueToCode(this, 'NUM') || '0';
+  var argument0 = Blockly.Python.valueToCode(this, 'ITEM',
+      Blockly.Python.ORDER_NONE) || 'None';
+  var argument1 = Blockly.Python.valueToCode(this, 'NUM',
+      Blockly.Python.ORDER_MULTIPLICATIVE) || '0';
   var code = '[' + argument0 + '] * ' + argument1;
-  if (!opt_dropParens) {
-    code = '(' + code + ')';
+  return [code, Blockly.Python.ORDER_MULTIPLICATIVE];
+};
+
+Blockly.Python.lists_length = function() {
+  // List length.
+  var argument0 = Blockly.Python.valueToCode(this, 'VALUE',
+      Blockly.Python.ORDER_NONE) || '[]';
+  return ['len(' + argument0 + ')', Blockly.Python.ORDER_FUNCTION_CALL];
+};
+
+Blockly.Python.lists_isEmpty = function() {
+  // Is the list empty?
+  var argument0 = Blockly.Python.valueToCode(this, 'VALUE',
+      Blockly.Python.ORDER_NONE) || '[]';
+  var code = 'not len(' + argument0 + ')';
+  return [code, Blockly.Python.ORDER_LOGICAL_NOT];
+};
+
+Blockly.Python.lists_indexOf = function() {
+  // Find an item in the list.
+  var argument0 = Blockly.Python.valueToCode(this, 'FIND',
+      Blockly.Python.ORDER_NONE) || '[]';
+  var argument1 = Blockly.Python.valueToCode(this, 'VALUE',
+      Blockly.Python.ORDER_MEMBER) || '\'\'';
+  var code;
+  if (this.getTitleValue('END') == 'FIRST') {
+    if (!Blockly.Python.definitions_['first_index']) {
+      var functionName = Blockly.Python.variableDB_.getDistinctName(
+          'first_index', Blockly.Generator.NAME_TYPE);
+      Blockly.Python.lists_indexOf.first_index = functionName;
+      var func = [];
+      func.push('def ' + functionName + '(myList, elem):');
+      func.push('  try: theIndex = myList.index(elem) + 1');
+      func.push('  except: theIndex = 0');
+      func.push('  return theIndex');
+      Blockly.Python.definitions_['first_index'] = func.join('\n');
+    }
+    code = Blockly.Python.lists_indexOf.first_index + '(' +
+        argument1 + ', ' + argument0 + ')';
+    return [code, Blockly.Python.ORDER_MEMBER];
+  } else {
+    if (!Blockly.Python.definitions_['last_index']) {
+      var functionName = Blockly.Python.variableDB_.getDistinctName(
+          'last_index', Blockly.Generator.NAME_TYPE);
+      Blockly.Python.lists_indexOf.last_index = functionName;
+      var func = [];
+      func.push('def ' + functionName + '(myList, elem):');
+      func.push('  try: theIndex = len(myList) - myList[::-1].index(elem)');
+      func.push('  except: theIndex = 0');
+      func.push('  return theIndex');
+      Blockly.Python.definitions_['last_index'] = func.join('\n');
+    }
+    code = Blockly.Python.lists_indexOf.last_index + '(' +
+        argument1 + ', ' + argument0 + ')';
+    return [code, Blockly.Python.ORDER_MEMBER];
   }
-  return code;
 };
 
-Blockly.Python.lists_length = function(opt_dropParens) {
-  // Testing the length of a list is the same as for a string.
-  return Blockly.Python.text_length.call(this, opt_dropParens);
-};
+Blockly.Python.lists_getIndex = function() {
+  // Get element at index.
+  // Note: Until January 2013 this block did not have MODE or WHERE inputs.
+  var mode = this.getTitleValue('MODE') || 'GET';
+  var where = this.getTitleValue('WHERE') || 'FROM_START';
+  var at = Blockly.Python.valueToCode(this, 'AT',
+      Blockly.Python.ORDER_UNARY_SIGN) || '1';
+  var list = Blockly.Python.valueToCode(this, 'VALUE',
+      Blockly.Python.ORDER_MEMBER) || '[]';
 
-Blockly.Python.lists_isEmpty = function(opt_dropParens) {
-  // Testing a list for being empty is the same as for a string.
-  return Blockly.Python.text_isEmpty.call(this, opt_dropParens);
-};
-
-Blockly.Python.lists_indexOf = function(opt_dropParens) {
-  // Searching a list for a value is the same as search for a substring.
-  return Blockly.Python.text_indexOf.call(this, opt_dropParens);
-};
-
-Blockly.Python.lists_getIndex = function(opt_dropParens) {
-  // Indexing into a list is the same as indexing into a string.
-  return Blockly.Python.text_charAt.call(this, opt_dropParens);
+  if (where == 'FIRST') {
+    if (mode == 'GET') {
+      var code = list + '[0]';
+      return [code, Blockly.Python.ORDER_MEMBER];
+    } else {
+      var code = list + '.pop(0)';
+      if (mode == 'GET_REMOVE') {
+        return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+      } else if (mode == 'REMOVE') {
+        return code + '\n';
+      }
+    }
+  } else if (where == 'LAST') {
+    if (mode == 'GET') {
+      var code = list + '[-1]';
+      return [code, Blockly.Python.ORDER_MEMBER];
+    } else {
+      var code = list + '.pop()';
+      if (mode == 'GET_REMOVE') {
+        return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+      } else if (mode == 'REMOVE') {
+        return code + '\n';
+      }
+    }
+  } else if (where == 'FROM_START') {
+    // Blockly uses one-based indicies.
+    if (at.match(/^-?\d+$/)) {
+      // If the index is a naked number, decrement it right now.
+      at = parseInt(at, 10) - 1;
+    } else {
+      // If the index is dynamic, decrement it in code.
+      at += ' - 1';
+    }
+    if (mode == 'GET') {
+      var code = list + '[' + at + ']';
+      return [code, Blockly.Python.ORDER_MEMBER];
+    } else {
+      var code = list + '.pop(' + at + ')';
+      if (mode == 'GET_REMOVE') {
+        return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+      } else if (mode == 'REMOVE') {
+        return code + '\n';
+      }
+    }
+  } else if (where == 'FROM_END') {
+    if (mode == 'GET') {
+      var code = list + '[-' + at + ']';
+      return [code, Blockly.Python.ORDER_MEMBER];
+    } else {
+      var code = list + '.pop(-' + at + ')';
+      if (mode == 'GET_REMOVE') {
+        return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+      } else if (mode == 'REMOVE') {
+        return code + '\n';
+      }
+    }
+  } else if (where == 'RANDOM') {
+    Blockly.Python.definitions_['import_random'] = 'import random';
+    if (mode == 'GET') {
+      code = 'random.choice(' + list + ')';
+      return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+    } else {
+      if (!Blockly.Python.definitions_['lists_remove_random_item']) {
+        var functionName = Blockly.Python.variableDB_.getDistinctName(
+            'lists_remove_random_item', Blockly.Generator.NAME_TYPE);
+        Blockly.Python.lists_getIndex.random = functionName;
+        var func = [];
+        func.push('def ' + functionName + '(myList):');
+        func.push('  x = int(random.random() * len(myList))');
+        func.push('  return myList.pop(x)');
+        Blockly.Python.definitions_['lists_remove_random_item'] = func.join('\n');
+      }
+      code = Blockly.Python.lists_getIndex.random + '(' + list + ')';
+      if (mode == 'GET' || mode == 'GET_REMOVE') {
+        return [code, Blockly.Python.ORDER_FUNCTION_CALL];
+      } else if (mode == 'REMOVE') {
+        return code + '\n';
+      }
+    }
+  }
+  throw 'Unhandled combination (lists_getIndex).';
 };
 
 Blockly.Python.lists_setIndex = function() {
   // Set element at index.
-  var argument0 = Blockly.Python.valueToCode(this, 'AT', true) || '1';
-  var argument1 = Blockly.Python.valueToCode(this, 'LIST') || '[]';
-  var argument2 = Blockly.Python.valueToCode(this, 'TO', true) || 'None';
-  // Blockly uses one-based indicies.
-  if (argument0.match(/^\d+$/)) {
-    // If the index is a naked number, decrement it right now.
-    // Except we don't allow negative index like in Python.
-    argument0 = Math.max(0, parseInt(argument0, 10) - 1);
-  } else {
-    // If the index is dynamic, decrement it in code.
-    argument0 += ' - 1';
+  // Note: Until February 2013 this block did not have MODE or WHERE inputs.
+  var list = Blockly.Python.valueToCode(this, 'LIST',
+      Blockly.Python.ORDER_MEMBER) || '[]';
+  var mode = this.getTitleValue('MODE') || 'GET';
+  var where = this.getTitleValue('WHERE') || 'FROM_START';
+  var at = Blockly.Python.valueToCode(this, 'AT',
+      Blockly.Python.ORDER_NONE) || '1';
+  var value = Blockly.Python.valueToCode(this, 'TO',
+      Blockly.Python.ORDER_NONE) || 'None';
+  // Cache non-trivial values to variables to prevent repeated look-ups.
+  // Closure, which accesses and modifies 'list'.
+  function cacheList() {
+    if (list.match(/^\w+$/)) {
+      return '';
+    }
+    var listVar = Blockly.Python.variableDB_.getDistinctName(
+        'tmp_list', Blockly.Variables.NAME_TYPE);
+    var code = listVar + ' = ' + list + '\n';
+    list = listVar;
+    return code;
   }
-  return argument1 + '[' + argument0 + '] = ' + argument2 + '\n';
+  if (where == 'FIRST') {
+    if (mode == 'SET') {
+      return list + '[0] = ' + value + '\n';
+    } else if (mode == 'INSERT') {
+      return list + '.insert(0, ' + value + ')\n';
+    }
+  } else if (where == 'LAST') {
+    if (mode == 'SET') {
+      return list + '[-1] = ' + value + '\n';
+    } else if (mode == 'INSERT') {
+      return list + '.append(' + value + ')\n';
+    }
+  } else if (where == 'FROM_START') {
+    // Blockly uses one-based indicies.
+    if (at.match(/^-?\d+$/)) {
+      // If the index is a naked number, decrement it right now.
+      at = parseInt(at, 10) - 1;
+    } else {
+      // If the index is dynamic, decrement it in code.
+      at += ' - 1';
+    }
+    if (mode == 'SET') {
+      return list + '[' + at + '] = ' + value + '\n';
+    } else if (mode == 'INSERT') {
+      return list + '.insert(' + at + ', ' + value + ')\n';
+    }
+  } else if (where == 'FROM_END') {
+    if (mode == 'SET') {
+      return list + '[-' + at + '] = ' + value + '\n';
+    } else if (mode == 'INSERT') {
+      return list + '.insert(-' + at + ', ' + value + ')\n';
+    }
+  } else if (where == 'RANDOM') {
+    Blockly.Python.definitions_['import_random'] = 'import random';
+    var code = cacheList();
+    var xVar = Blockly.Python.variableDB_.getDistinctName(
+        'tmp_x', Blockly.Variables.NAME_TYPE);
+    code += xVar + ' = int(random.random() * len(' + list + '))\n';
+    if (mode == 'SET') {
+      code += list + '[' + xVar + '] = ' + value + '\n';
+      return code;
+    } else if (mode == 'INSERT') {
+      code += list + '.insert(' + xVar + ', ' + value + ')\n';
+      return code;
+    }
+  }
+  throw 'Unhandled combination (lists_setIndex).';
 };

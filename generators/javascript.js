@@ -2,7 +2,7 @@
  * Visual Blocks Language
  *
  * Copyright 2012 Google Inc.
- * http://code.google.com/p/blockly/
+ * http://blockly.googlecode.com/
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,12 @@
 /**
  * @fileoverview Helper functions for generating JavaScript for blocks.
  * @author fraser@google.com (Neil Fraser)
- * Due to the frequency of long strings, the 80-column wrap rule need not apply
- * to language files.
  */
+'use strict';
+
+goog.provide('Blockly.JavaScript');
+
+goog.require('Blockly.CodeGenerator');
 
 Blockly.JavaScript = Blockly.Generator.get('JavaScript');
 
@@ -33,7 +36,8 @@ Blockly.JavaScript = Blockly.Generator.get('JavaScript');
  * accidentally clobbering a built-in object or function.
  * @private
  */
-Blockly.JavaScript.RESERVED_WORDS_ =
+Blockly.JavaScript.addReservedWords(
+    'Blockly,' +  // In case JS is evaled in the current window.
     // https://developer.mozilla.org/en/JavaScript/Reference/Reserved_Words
     'break,case,catch,continue,debugger,default,delete,do,else,finally,for,function,if,in,instanceof,new,return,switch,this,throw,try,typeof,var,void,while,with,' +
     'class,enum,export,extends,import,super,implements,interface,let,package,private,protected,public,static,yield,' +
@@ -54,7 +58,52 @@ Blockly.JavaScript.RESERVED_WORDS_ =
     'SVGAngle,SVGColor,SVGICCColor,SVGElementInstance,SVGElementInstanceList,SVGLength,SVGLengthList,SVGMatrix,SVGNumber,SVGNumberList,SVGPaint,SVGPoint,SVGPointList,SVGPreserveAspectRatio,SVGRect,SVGStringList,SVGTransform,SVGTransformList,' +
     'SVGAnimatedAngle,SVGAnimatedBoolean,SVGAnimatedEnumeration,SVGAnimatedInteger,SVGAnimatedLength,SVGAnimatedLengthList,SVGAnimatedNumber,SVGAnimatedNumberList,SVGAnimatedPreserveAspectRatio,SVGAnimatedRect,SVGAnimatedString,SVGAnimatedTransformList,' +
     'SVGPathSegList,SVGPathSeg,SVGPathSegArcAbs,SVGPathSegArcRel,SVGPathSegClosePath,SVGPathSegCurvetoCubicAbs,SVGPathSegCurvetoCubicRel,SVGPathSegCurvetoCubicSmoothAbs,SVGPathSegCurvetoCubicSmoothRel,SVGPathSegCurvetoQuadraticAbs,SVGPathSegCurvetoQuadraticRel,SVGPathSegCurvetoQuadraticSmoothAbs,SVGPathSegCurvetoQuadraticSmoothRel,SVGPathSegLinetoAbs,SVGPathSegLinetoHorizontalAbs,SVGPathSegLinetoHorizontalRel,SVGPathSegLinetoRel,SVGPathSegLinetoVerticalAbs,SVGPathSegLinetoVerticalRel,SVGPathSegMovetoAbs,SVGPathSegMovetoRel,ElementTimeControl,TimeEvent,SVGAnimatedPathData,' +
-    'SVGAnimatedPoints,SVGColorProfileRule,SVGCSSRule,SVGExternalResourcesRequired,SVGFitToViewBox,SVGLangSpace,SVGLocatable,SVGRenderingIntent,SVGStylable,SVGTests,SVGTextContentElement,SVGTextPositioningElement,SVGTransformable,SVGUnitTypes,SVGURIReference,SVGViewSpec,SVGZoomAndPan';
+    'SVGAnimatedPoints,SVGColorProfileRule,SVGCSSRule,SVGExternalResourcesRequired,SVGFitToViewBox,SVGLangSpace,SVGLocatable,SVGRenderingIntent,SVGStylable,SVGTests,SVGTextContentElement,SVGTextPositioningElement,SVGTransformable,SVGUnitTypes,SVGURIReference,SVGViewSpec,SVGZoomAndPan');
+
+/**
+ * Order of operation ENUMs.
+ * https://developer.mozilla.org/en/JavaScript/Reference/Operators/Operator_Precedence
+ */
+Blockly.JavaScript.ORDER_ATOMIC = 0;         // 0 "" ...
+Blockly.JavaScript.ORDER_MEMBER = 1;         // . []
+Blockly.JavaScript.ORDER_NEW = 1;            // new
+Blockly.JavaScript.ORDER_FUNCTION_CALL = 2;  // ()
+Blockly.JavaScript.ORDER_INCREMENT = 3;      // ++
+Blockly.JavaScript.ORDER_DECREMENT = 3;      // --
+Blockly.JavaScript.ORDER_LOGICAL_NOT = 4;    // !
+Blockly.JavaScript.ORDER_BITWISE_NOT = 4;    // ~
+Blockly.JavaScript.ORDER_UNARY_PLUS = 4;     // +
+Blockly.JavaScript.ORDER_UNARY_NEGATION = 4; // -
+Blockly.JavaScript.ORDER_TYPEOF = 4;         // typeof
+Blockly.JavaScript.ORDER_VOID = 4;           // void
+Blockly.JavaScript.ORDER_DELETE = 4;         // delete
+Blockly.JavaScript.ORDER_MULTIPLICATION = 5; // *
+Blockly.JavaScript.ORDER_DIVISION = 5;       // /
+Blockly.JavaScript.ORDER_MODULUS = 5;        // %
+Blockly.JavaScript.ORDER_ADDITION = 6;       // +
+Blockly.JavaScript.ORDER_SUBTRACTION = 6;    // -
+Blockly.JavaScript.ORDER_BITWISE_SHIFT = 7;  // << >> >>>
+Blockly.JavaScript.ORDER_RELATIONAL = 8;     // < <= > >=
+Blockly.JavaScript.ORDER_IN = 8;             // in
+Blockly.JavaScript.ORDER_INSTANCEOF = 8;     // instanceof
+Blockly.JavaScript.ORDER_EQUALITY = 9;       // == != === !==
+Blockly.JavaScript.ORDER_BITWISE_AND = 10;   // &
+Blockly.JavaScript.ORDER_BITWISE_XOR = 11;   // ^
+Blockly.JavaScript.ORDER_BITWISE_OR = 12;    // |
+Blockly.JavaScript.ORDER_LOGICAL_AND = 13;   // &&
+Blockly.JavaScript.ORDER_LOGICAL_OR = 14;    // ||
+Blockly.JavaScript.ORDER_CONDITIONAL = 15;   // ?:
+Blockly.JavaScript.ORDER_ASSIGNMENT = 16;    // = += -= *= /= %= <<= >>= ...
+Blockly.JavaScript.ORDER_COMMA = 17;         // ,
+Blockly.JavaScript.ORDER_NONE = 99;          // (...)
+
+/**
+ * Arbitrary code to inject into locations that risk causing infinite loops.
+ * Any instances of '%1' will be replaced by the block ID that failed.
+ * E.g. '  checkTimeout(%1);\n'
+ * @type ?string
+ */
+Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
 
 /**
  * Initialise the database of variable names.
@@ -66,7 +115,7 @@ Blockly.JavaScript.init = function() {
   if (Blockly.Variables) {
     if (!Blockly.JavaScript.variableDB_) {
       Blockly.JavaScript.variableDB_ =
-          new Blockly.Names(Blockly.JavaScript.RESERVED_WORDS_.split(','));
+          new Blockly.Names(Blockly.JavaScript.RESERVED_WORDS_);
     } else {
       Blockly.JavaScript.variableDB_.reset();
     }
@@ -75,7 +124,7 @@ Blockly.JavaScript.init = function() {
     var variables = Blockly.Variables.allVariables();
     for (var x = 0; x < variables.length; x++) {
       defvars[x] = 'var ' +
-          Blockly.JavaScript.variableDB_.getDistinctName(variables[x],
+          Blockly.JavaScript.variableDB_.getName(variables[x],
           Blockly.Variables.NAME_TYPE) + ';';
     }
     Blockly.JavaScript.definitions_['variables'] = defvars.join('\n');
@@ -93,7 +142,7 @@ Blockly.JavaScript.finish = function(code) {
   for (var name in Blockly.JavaScript.definitions_) {
     definitions.push(Blockly.JavaScript.definitions_[name]);
   }
-  return definitions.join('\n') + '\n\n' + code;
+  return definitions.join('\n\n') + '\n\n\n' + code;
 };
 
 /**
@@ -128,6 +177,7 @@ Blockly.JavaScript.quote_ = function(string) {
  * @param {!Blockly.Block} block The current block.
  * @param {string} code The JavaScript code created for this block.
  * @return {string} JavaScript code with comments and subsequent blocks added.
+ * @this {Blockly.CodeGenerator}
  * @private
  */
 Blockly.JavaScript.scrub_ = function(block, code) {
@@ -147,7 +197,7 @@ Blockly.JavaScript.scrub_ = function(block, code) {
     // Don't collect comments for nested statements.
     for (var x = 0; x < block.inputList.length; x++) {
       if (block.inputList[x].type == Blockly.INPUT_VALUE) {
-        var childBlock = block.inputList[x].targetBlock();
+        var childBlock = block.inputList[x].connection.targetBlock();
         if (childBlock) {
           var comment = Blockly.Generator.allNestedComments(childBlock);
           if (comment) {
